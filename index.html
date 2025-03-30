@@ -223,17 +223,22 @@
 
             <div class="input-group key-group" id="key-group">
                 <label for="key-input" id="key-label">Key (Shift Number)</label>
-                <input type="text" id="key-input" placeholder="Enter key..." oninput="processCipher()">
+                <input type="text" id="key-input" placeholder="Enter key..." oninput="processAutomatic()">
                 <p class="option-description" id="key-description">
                     For Caesar cipher, enter a number between 1-25
                 </p>
+            </div>
+
+            <div class="auto-update">
+                <input type="checkbox" id="auto-update" checked>
+                <label for="auto-update">Auto-update as you type</label>
             </div>
 
             <div class="input-group">
                 <div class="text-area-heading">
                     <label for="input-text" id="input-label">Plain Text</label>
                 </div>
-                <textarea id="input-text" placeholder="Enter text..." oninput="processCipher()"></textarea>
+                <textarea id="input-text" placeholder="Enter text..." oninput="processAutomatic()"></textarea>
             </div>
         </div>
 
@@ -248,7 +253,7 @@
                     <label for="output-text" id="output-label">Cipher Text</label>
                     <div class="status" id="status"></div>
                 </div>
-                <textarea id="output-text" placeholder="Result will appear here..." oninput="processCipherReverse()"></textarea>
+                <textarea id="output-text" placeholder="Result will appear here..." oninput="processReverseAutomatic()"></textarea>
             </div>
             <button class="copy-button" onclick="copyToClipboard()">Copy to Clipboard</button>
         </div>
@@ -304,7 +309,7 @@
             document.getElementById('output-label').textContent = mode === 'encrypt' ? 'Cipher Text' : 'Plain Text';
             
             // Process with new mode
-            processCipher();
+            processAutomatic();
         }
 
         // Update descriptions when cipher selection changes
@@ -327,7 +332,7 @@
             }
             
             // Process with new cipher
-            processCipher();
+            processAutomatic();
         }
 
         // Initialize on page load
@@ -347,6 +352,20 @@
             setTimeout(() => {
                 status.textContent = "";
             }, 2000);
+        }
+
+        // Process the input automatically if auto-update is checked
+        function processAutomatic() {
+            if (document.getElementById('auto-update').checked) {
+                processCipher();
+            }
+        }
+
+        // Process in reverse direction (from output to input)
+        function processReverseAutomatic() {
+            if (document.getElementById('auto-update').checked) {
+                processCipherReverse();
+            }
         }
 
         // Process from output to input (reverse direction)
@@ -424,10 +443,6 @@
             const selectedCipher = cipherSelect.value;
             
             let result = '';
-
-            if ( (!keyInput || isNaN(parseInt(keyInput)) ) || !inputText) {
-                break;
-            }
             
             try {
                 switch (selectedCipher) {
