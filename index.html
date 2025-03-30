@@ -424,6 +424,10 @@
             const selectedCipher = cipherSelect.value;
             
             let result = '';
+
+            if ( (!keyInput || isNaN(parseInt(keyInput)) ) || !inputText) {
+                break;
+            }
             
             try {
                 switch (selectedCipher) {
