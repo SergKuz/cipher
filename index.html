@@ -447,7 +447,7 @@
             try {
                 switch (selectedCipher) {
                     case 'caesar':
-                        if (!keyInput || isNaN(parseInt(keyInput))) {
+                        if ((!keyInput || isNaN(parseInt(keyInput))) && inputText) {
                             throw new Error("Please enter a valid number for the Caesar cipher key");
                         }
                         const shift = parseInt(keyInput) % 26;
