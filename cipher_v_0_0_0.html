@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevCipher - Text Encryption Tool</title>
+    <style>
+        :root {
+            --primary: #646cff;
+            --primary-dark: #535bf2;
+            --background: #1a1a1a;
+            --foreground: #f9f9f9;
+            --card: #242424;
+            --border: #3a3a3a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: var(--background);
+            color: var(--foreground);
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: var(--primary);
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        @media (min-width: 768px) {
+            .container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .card {
+            background-color: var(--card);
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        select, input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background-color: var(--background);
+            color: var(--foreground);
+            font-size: 16px;
+        }
+
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .key-group {
+            margin-top: 15px;
+            display: none;
+        }
+
+        .option-description {
+            font-size: 14px;
+            color: #aaa;
+            margin-top: 5px;
+        }
+
+        .copy-button {
+            margin-top: 10px;
+            background-color: #2c2c2c;
+        }
+
+        .copy-button:hover {
+            background-color: #3c3c3c;
+        }
+
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .status {
+            font-size: 14px;
+            margin-top: 5px;
+            height: 20px;
+            color: #64ff7b;
+        }
+
+        .direction-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            margin: 10px 0;
+            color: var(--primary);
+        }
+
+        .direction-icon {
+            font-size: 24px;
+            margin: 0 10px;
+        }
+
+        .auto-update {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .auto-update input {
+            width: auto;
+            margin-right: 10px;
+        }
+
+        .mode-toggle {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .mode-button {
+            background-color: #2c2c2c;
+            color: var(--foreground);
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .mode-button:first-child {
+            border-radius: 4px 0 0 4px;
+        }
+
+        .mode-button:last-child {
+            border-radius: 0 4px 4px 0;
+        }
+
+        .mode-button.active {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .text-area-heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>DevCipher</h1>
+    
+    <div class="mode-toggle">
+        <button class="mode-button active" id="mode-encrypt" onclick="setMode('encrypt')">Encrypt</button>
+        <button class="mode-button" id="mode-decrypt" onclick="setMode('decrypt')">Decrypt</button>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <div class="input-group">
+                <label for="cipher-select">Select Cipher</label>
+                <select id="cipher-select" onchange="toggleKeyInput()">
+                    <option value="caesar">Caesar Cipher</option>
+                    <option value="morse">Morse Code</option>
+                    <option value="vigenere">Vigenère Cipher</option>
+                    <option value="base64">Base64</option>
+                    <option value="rot13">ROT13</option>
+                </select>
+                <p class="option-description" id="cipher-description">
+                    Caesar cipher shifts each letter by a fixed number of positions in the alphabet.
+                </p>
+            </div>
+
+            <div class="input-group key-group" id="key-group">
+                <label for="key-input" id="key-label">Key (Shift Number)</label>
+                <input type="text" id="key-input" placeholder="Enter key..." oninput="processAutomatic()">
+                <p class="option-description" id="key-description">
+                    For Caesar cipher, enter a number between 1-25
+                </p>
+            </div>
+
+            <div class="auto-update">
+                <input type="checkbox" id="auto-update" checked>
+                <label for="auto-update">Auto-update as you type</label>
+            </div>
+
+            <div class="input-group">
+                <div class="text-area-heading">
+                    <label for="input-text" id="input-label">Plain Text</label>
+                </div>
+                <textarea id="input-text" placeholder="Enter text..." oninput="processAutomatic()"></textarea>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="direction-label">
+                <span id="direction-label">Encrypting</span>
+                <span class="direction-icon">→</span>
+            </div>
+            
+            <div class="input-group">
+                <div class="text-area-heading">
+                    <label for="output-text" id="output-label">Cipher Text</label>
+                    <div class="status" id="status"></div>
+                </div>
+                <textarea id="output-text" placeholder="Result will appear here..." oninput="processReverseAutomatic()"></textarea>
+            </div>
+            <button class="copy-button" onclick="copyToClipboard()">Copy to Clipboard</button>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentMode = 'encrypt';
+
+        // Descriptions for each cipher
+        const cipherDescriptions = {
+            caesar: "Caesar cipher shifts each letter by a fixed number of positions in the alphabet.",
+            morse: "Morse code represents characters as sequences of dots and dashes.",
+            vigenere: "Vigenère cipher uses a keyword to determine multiple shift values.",
+            base64: "Base64 encoding converts binary data to ASCII string format.",
+            rot13: "ROT13 is a special case of Caesar cipher with a shift of 13 places."
+        };
+
+        // Key descriptions for each cipher
+        const keyDescriptions = {
+            caesar: "For Caesar cipher, enter a number between 1-25",
+            morse: "Morse code doesn't require a key",
+            vigenere: "For Vigenère cipher, enter a keyword (letters only)",
+            base64: "Base64 doesn't require a key",
+            rot13: "ROT13 doesn't require a key"
+        };
+
+        // Key labels for each cipher
+        const keyLabels = {
+            caesar: "Key (Shift Number)",
+            morse: "No Key Required",
+            vigenere: "Key (Keyword)",
+            base64: "No Key Required",
+            rot13: "No Key Required"
+        };
+
+        // Whether each cipher requires a key
+        const requiresKey = {
+            caesar: true,
+            morse: false,
+            vigenere: true,
+            base64: false,
+            rot13: false
+        };
+
+        // Set the mode (encrypt or decrypt)
+        function setMode(mode) {
+            currentMode = mode;
+            document.getElementById('mode-encrypt').classList.toggle('active', mode === 'encrypt');
+            document.getElementById('mode-decrypt').classList.toggle('active', mode === 'decrypt');
+            document.getElementById('direction-label').textContent = mode === 'encrypt' ? 'Encrypting' : 'Decrypting';
+            document.getElementById('input-label').textContent = mode === 'encrypt' ? 'Plain Text' : 'Cipher Text';
+            document.getElementById('output-label').textContent = mode === 'encrypt' ? 'Cipher Text' : 'Plain Text';
+            
+            // Process with new mode
+            processAutomatic();
+        }
+
+        // Update descriptions when cipher selection changes
+        function toggleKeyInput() {
+            const cipherSelect = document.getElementById('cipher-select');
+            const selectedCipher = cipherSelect.value;
+            const keyGroup = document.getElementById('key-group');
+            const cipherDescription = document.getElementById('cipher-description');
+            const keyDescription = document.getElementById('key-description');
+            const keyLabel = document.getElementById('key-label');
+            
+            cipherDescription.textContent = cipherDescriptions[selectedCipher];
+            keyDescription.textContent = keyDescriptions[selectedCipher];
+            keyLabel.textContent = keyLabels[selectedCipher];
+            
+            if (requiresKey[selectedCipher]) {
+                keyGroup.style.display = 'block';
+            } else {
+                keyGroup.style.display = 'none';
+            }
+            
+            // Process with new cipher
+            processAutomatic();
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            toggleKeyInput();
+            setMode('encrypt');
+        });
+
+        // Copy output to clipboard
+        function copyToClipboard() {
+            const outputText = document.getElementById('output-text');
+            outputText.select();
+            document.execCommand('copy');
+            
+            const status = document.getElementById('status');
+            status.textContent = "Copied to clipboard!";
+            setTimeout(() => {
+                status.textContent = "";
+            }, 2000);
+        }
+
+        // Process the input automatically if auto-update is checked
+        function processAutomatic() {
+            if (document.getElementById('auto-update').checked) {
+                processCipher();
+            }
+        }
+
+        // Process in reverse direction (from output to input)
+        function processReverseAutomatic() {
+            if (document.getElementById('auto-update').checked) {
+                processCipherReverse();
+            }
+        }
+
+        // Process from output to input (reverse direction)
+        function processCipherReverse() {
+            const cipherSelect = document.getElementById('cipher-select');
+            const outputText = document.getElementById('output-text').value;
+            const keyInput = document.getElementById('key-input').value;
+            const inputText = document.getElementById('input-text');
+            const selectedCipher = cipherSelect.value;
+            
+            let result = '';
+            
+            try {
+                // Reverse the current mode for processing
+                const reverseMode = currentMode === 'encrypt' ? 'decrypt' : 'encrypt';
+                
+                switch (selectedCipher) {
+                    case 'caesar':
+                        if (!keyInput || isNaN(parseInt(keyInput))) {
+                            throw new Error("Please enter a valid number for the Caesar cipher key");
+                        }
+                        const shift = parseInt(keyInput) % 26;
+                        result = reverseMode === 'encrypt' ? 
+                            caesarCipher(outputText, shift) : 
+                            caesarCipher(outputText, 26 - shift);
+                        break;
+                    case 'morse':
+                        result = reverseMode === 'encrypt' ? 
+                            textToMorse(outputText) : 
+                            morseToText(outputText);
+                        break;
+                    case 'vigenere':
+                        if (!keyInput) {
+                            throw new Error("Please enter a keyword for the Vigenère cipher");
+                        }
+                        result = reverseMode === 'encrypt' ? 
+                            vigenereEncrypt(outputText, keyInput) : 
+                            vigenereDecrypt(outputText, keyInput);
+                        break;
+                    case 'base64':
+                        try {
+                            result = reverseMode === 'encrypt' ? 
+                                btoa(outputText) : 
+                                atob(outputText);
+                        } catch (e) {
+                            throw new Error("Invalid Base64 input");
+                        }
+                        break;
+                    case 'rot13':
+                        result = rot13(outputText);
+                        break;
+                }
+                
+                inputText.value = result;
+                document.getElementById('status').textContent = `Reverse ${reverseMode} successful!`;
+                setTimeout(() => {
+                    document.getElementById('status').textContent = "";
+                }, 2000);
+            } catch (error) {
+                document.getElementById('status').textContent = `Error: ${error.message}`;
+                document.getElementById('status').style.color = "#ff6464";
+                setTimeout(() => {
+                    document.getElementById('status').textContent = "";
+                    document.getElementById('status').style.color = "#64ff7b";
+                }, 3000);
+            }
+        }
+
+        // Process the input based on selected cipher
+        function processCipher() {
+            const cipherSelect = document.getElementById('cipher-select');
+            const inputText = document.getElementById('input-text').value;
+            const keyInput = document.getElementById('key-input').value;
+            const outputText = document.getElementById('output-text');
+            const selectedCipher = cipherSelect.value;
+            
+            let result = '';
+            
+            try {
+                switch (selectedCipher) {
+                    case 'caesar':
+                        if (!keyInput || isNaN(parseInt(keyInput))) {
+                            throw new Error("Please enter a valid number for the Caesar cipher key");
+                        }
+                        const shift = parseInt(keyInput) % 26;
+                        result = currentMode === 'encrypt' ? 
+                            caesarCipher(inputText, shift) : 
+                            caesarCipher(inputText, 26 - shift);
+                        break;
+                    case 'morse':
+                        result = currentMode === 'encrypt' ? 
+                            textToMorse(inputText) : 
+                            morseToText(inputText);
+                        break;
+                    case 'vigenere':
+                        if (!keyInput) {
+                            throw new Error("Please enter a keyword for the Vigenère cipher");
+                        }
+                        result = currentMode === 'encrypt' ? 
+                            vigenereEncrypt(inputText, keyInput) : 
+                            vigenereDecrypt(inputText, keyInput);
+                        break;
+                    case 'base64':
+                        try {
+                            result = currentMode === 'encrypt' ? 
+                                btoa(inputText) : 
+                                atob(inputText);
+                        } catch (e) {
+                            throw new Error("Invalid Base64 input");
+                        }
+                        break;
+                    case 'rot13':
+                        result = rot13(inputText);
+                        break;
+                }
+                
+                outputText.value = result;
+                document.getElementById('status').textContent = `${currentMode === 'encrypt' ? 'Encryption' : 'Decryption'} successful!`;
+                setTimeout(() => {
+                    document.getElementById('status').textContent = "";
+                }, 2000);
+            } catch (error) {
+                document.getElementById('status').textContent = `Error: ${error.message}`;
+                document.getElementById('status').style.color = "#ff6464";
+                setTimeout(() => {
+                    document.getElementById('status').textContent = "";
+                    document.getElementById('status').style.color = "#64ff7b";
+                }, 3000);
+            }
+        }
+
+        // Caesar Cipher implementation
+        function caesarCipher(text, shift) {
+            return text.split('').map(char => {
+                const code = char.charCodeAt(0);
+                // Uppercase letters
+                if (code >= 65 && code <= 90) {
+                    return String.fromCharCode(((code - 65 + shift) % 26) + 65);
+                }
+                // Lowercase letters
+                else if (code >= 97 && code <= 122) {
+                    return String.fromCharCode(((code - 97 + shift) % 26) + 97);
+                }
+                // Non-alphabetic characters
+                return char;
+            }).join('');
+        }
+
+        // Morse Code implementation
+        const morseCodeMap = {
+            'A': '.-', 'B': '-...', 'C': '-.-.', 'D': '-..', 'E': '.',
+            'F': '..-.', 'G': '--.', 'H': '....', 'I': '..', 'J': '.---',
+            'K': '-.-', 'L': '.-..', 'M': '--', 'N': '-.', 'O': '---',
+            'P': '.--.', 'Q': '--.-', 'R': '.-.', 'S': '...', 'T': '-',
+            'U': '..-', 'V': '...-', 'W': '.--', 'X': '-..-', 'Y': '-.--',
+            'Z': '--..', '0': '-----', '1': '.----', '2': '..---', '3': '...--',
+            '4': '....-', '5': '.....', '6': '-....', '7': '--...', '8': '---..',
+            '9': '----.', '.': '.-.-.-', ',': '--..--', '?': '..--..', "'": '.----.',
+            '!': '-.-.--', '/': '-..-.', '(': '-.--.', ')': '-.--.-', '&': '.-...',
+            ':': '---...', ';': '-.-.-.', '=': '-...-', '+': '.-.-.', '-': '-....-',
+            '_': '..--.-', '"': '.-..-.', '$': '...-..-', '@': '.--.-.'
+        };
+
+        function textToMorse(text) {
+            return text.toUpperCase().split('').map(char => {
+                if (char === ' ') return '   ';  // 3 spaces between words
+                return morseCodeMap[char] || char;
+            }).join(' ');  // 1 space between characters
+        }
+
+        function morseToText(morse) {
+            const reverseMorseCodeMap = Object.fromEntries(
+                Object.entries(morseCodeMap).map(([key, value]) => [value, key])
+            );
+            
+            return morse.split('   ').map(word => {
+                return word.split(' ').map(code => {
+                    return reverseMorseCodeMap[code] || code;
+                }).join('');
+            }).join(' ');
+        }
+
+        // Vigenère Cipher implementation
+        function vigenereEncrypt(text, key) {
+            key = key.toUpperCase().replace(/[^A-Z]/g, '');
+            if (key.length === 0) throw new Error("Key must contain at least one letter");
+            
+            let result = '';
+            let keyIndex = 0;
+            
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                const code = char.charCodeAt(0);
+                
+                // Process only alphabetic characters
+                if ((code >= 65 && code <= 90) || (code >= 97 && code <= 122)) {
+                    const isUpperCase = code >= 65 && code <= 90;
+                    const baseCode = isUpperCase ? 65 : 97;
+                    const keyChar = key[keyIndex % key.length];
+                    const shift = keyChar.charCodeAt(0) - 65;
+                    
+                    const encryptedCode = ((code - baseCode + shift) % 26) + baseCode;
+                    result += String.fromCharCode(encryptedCode);
+                    
+                    keyIndex++;
+                } else {
+                    result += char;
+                }
+            }
+            
+            return result;
+        }
+
+        function vigenereDecrypt(text, key) {
+            key = key.toUpperCase().replace(/[^A-Z]/g, '');
+            if (key.length === 0) throw new Error("Key must contain at least one letter");
+            
+            let result = '';
+            let keyIndex = 0;
+            
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                const code = char.charCodeAt(0);
+                
+                // Process only alphabetic characters
+                if ((code >= 65 && code <= 90) || (code >= 97 && code <= 122)) {
+                    const isUpperCase = code >= 65 && code <= 90;
+                    const baseCode = isUpperCase ? 65 : 97;
+                    const keyChar = key[keyIndex % key.length];
+                    const shift = keyChar.charCodeAt(0) - 65;
+                    
+                    const decryptedCode = ((code - baseCode - shift + 26) % 26) + baseCode;
+                    result += String.fromCharCode(decryptedCode);
+                    
+                    keyIndex++;
+                } else {
+                    result += char;
+                }
+            }
+            
+            return result;
+        }
+
+        // ROT13 Cipher implementation
+        function rot13(text) {
+            return caesarCipher(text, 13);
+        }
+    </script>
+</body>
+</html>
