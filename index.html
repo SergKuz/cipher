@@ -136,10 +136,75 @@
             height: 20px;
             color: #64ff7b;
         }
+
+        .direction-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            margin: 10px 0;
+            color: var(--primary);
+        }
+
+        .direction-icon {
+            font-size: 24px;
+            margin: 0 10px;
+        }
+
+        .auto-update {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .auto-update input {
+            width: auto;
+            margin-right: 10px;
+        }
+
+        .mode-toggle {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .mode-button {
+            background-color: #2c2c2c;
+            color: var(--foreground);
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .mode-button:first-child {
+            border-radius: 4px 0 0 4px;
+        }
+
+        .mode-button:last-child {
+            border-radius: 0 4px 4px 0;
+        }
+
+        .mode-button.active {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .text-area-heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
     </style>
 </head>
 <body>
     <h1>Modern & Classical Encryptions</h1>
+    
+    <div class="mode-toggle">
+        <button class="mode-button active" id="mode-encrypt" onclick="setMode('encrypt')">Encrypt</button>
+        <button class="mode-button" id="mode-decrypt" onclick="setMode('decrypt')">Decrypt</button>
+    </div>
+
     <div class="container">
         <div class="card">
             <div class="input-group">
@@ -158,34 +223,46 @@
 
             <div class="input-group key-group" id="key-group">
                 <label for="key-input" id="key-label">Key (Shift Number)</label>
-                <input type="text" id="key-input" placeholder="Enter key...">
+                <input type="text" id="key-input" placeholder="Enter key..." oninput="processAutomatic()">
                 <p class="option-description" id="key-description">
                     For Caesar cipher, enter a number between 1-25
                 </p>
             </div>
 
-            <div class="input-group">
-                <label for="input-text">Input Text</label>
-                <textarea id="input-text" placeholder="Enter text to encrypt/decrypt..."></textarea>
+            <div class="auto-update">
+                <input type="checkbox" id="auto-update" checked>
+                <label for="auto-update">Auto-update as you type</label>
             </div>
 
-            <div class="toolbar">
-                <button onclick="processCipher('encrypt')">Encrypt</button>
-                <button onclick="processCipher('decrypt')">Decrypt</button>
+            <div class="input-group">
+                <div class="text-area-heading">
+                    <label for="input-text" id="input-label">Plain Text</label>
+                </div>
+                <textarea id="input-text" placeholder="Enter text..." oninput="processAutomatic()"></textarea>
             </div>
         </div>
 
         <div class="card">
+            <div class="direction-label">
+                <span id="direction-label">Encrypting</span>
+                <span class="direction-icon">→</span>
+            </div>
+            
             <div class="input-group">
-                <label for="output-text">Output</label>
-                <textarea id="output-text" readonly></textarea>
-                <div class="status" id="status"></div>
+                <div class="text-area-heading">
+                    <label for="output-text" id="output-label">Cipher Text</label>
+                    <div class="status" id="status"></div>
+                </div>
+                <textarea id="output-text" placeholder="Result will appear here..." oninput="processReverseAutomatic()"></textarea>
             </div>
             <button class="copy-button" onclick="copyToClipboard()">Copy to Clipboard</button>
         </div>
     </div>
 
     <script>
+        // Global variables
+        let currentMode = 'encrypt';
+
         // Descriptions for each cipher
         const cipherDescriptions = {
             caesar: "Caesar cipher shifts each letter by a fixed number of positions in the alphabet.",
@@ -222,6 +299,19 @@
             rot13: false
         };
 
+        // Set the mode (encrypt or decrypt)
+        function setMode(mode) {
+            currentMode = mode;
+            document.getElementById('mode-encrypt').classList.toggle('active', mode === 'encrypt');
+            document.getElementById('mode-decrypt').classList.toggle('active', mode === 'decrypt');
+            document.getElementById('direction-label').textContent = mode === 'encrypt' ? 'Encrypting' : 'Decrypting';
+            document.getElementById('input-label').textContent = mode === 'encrypt' ? 'Plain Text' : 'Cipher Text';
+            document.getElementById('output-label').textContent = mode === 'encrypt' ? 'Cipher Text' : 'Plain Text';
+            
+            // Process with new mode
+            processAutomatic();
+        }
+
         // Update descriptions when cipher selection changes
         function toggleKeyInput() {
             const cipherSelect = document.getElementById('cipher-select');
@@ -240,10 +330,16 @@
             } else {
                 keyGroup.style.display = 'none';
             }
+            
+            // Process with new cipher
+            processAutomatic();
         }
 
         // Initialize on page load
-        document.addEventListener('DOMContentLoaded', toggleKeyInput);
+        document.addEventListener('DOMContentLoaded', function() {
+            toggleKeyInput();
+            setMode('encrypt');
+        });
 
         // Copy output to clipboard
         function copyToClipboard() {
@@ -258,8 +354,88 @@
             }, 2000);
         }
 
+        // Process the input automatically if auto-update is checked
+        function processAutomatic() {
+            if (document.getElementById('auto-update').checked) {
+                processCipher();
+            }
+        }
+
+        // Process in reverse direction (from output to input)
+        function processReverseAutomatic() {
+            if (document.getElementById('auto-update').checked) {
+                processCipherReverse();
+            }
+        }
+
+        // Process from output to input (reverse direction)
+        function processCipherReverse() {
+            const cipherSelect = document.getElementById('cipher-select');
+            const outputText = document.getElementById('output-text').value;
+            const keyInput = document.getElementById('key-input').value;
+            const inputText = document.getElementById('input-text');
+            const selectedCipher = cipherSelect.value;
+            
+            let result = '';
+            
+            try {
+                // Reverse the current mode for processing
+                const reverseMode = currentMode === 'encrypt' ? 'decrypt' : 'encrypt';
+                
+                switch (selectedCipher) {
+                    case 'caesar':
+                        if (!keyInput || isNaN(parseInt(keyInput))) {
+                            throw new Error("Please enter a valid number for the Caesar cipher key");
+                        }
+                        const shift = parseInt(keyInput) % 26;
+                        result = reverseMode === 'encrypt' ? 
+                            caesarCipher(outputText, shift) : 
+                            caesarCipher(outputText, 26 - shift);
+                        break;
+                    case 'morse':
+                        result = reverseMode === 'encrypt' ? 
+                            textToMorse(outputText) : 
+                            morseToText(outputText);
+                        break;
+                    case 'vigenere':
+                        if (!keyInput) {
+                            throw new Error("Please enter a keyword for the Vigenère cipher");
+                        }
+                        result = reverseMode === 'encrypt' ? 
+                            vigenereEncrypt(outputText, keyInput) : 
+                            vigenereDecrypt(outputText, keyInput);
+                        break;
+                    case 'base64':
+                        try {
+                            result = reverseMode === 'encrypt' ? 
+                                btoa(outputText) : 
+                                atob(outputText);
+                        } catch (e) {
+                            throw new Error("Invalid Base64 input");
+                        }
+                        break;
+                    case 'rot13':
+                        result = rot13(outputText);
+                        break;
+                }
+                
+                inputText.value = result;
+                document.getElementById('status').textContent = `Reverse ${reverseMode} successful!`;
+                setTimeout(() => {
+                    document.getElementById('status').textContent = "";
+                }, 2000);
+            } catch (error) {
+                document.getElementById('status').textContent = `Error: ${error.message}`;
+                document.getElementById('status').style.color = "#ff6464";
+                setTimeout(() => {
+                    document.getElementById('status').textContent = "";
+                    document.getElementById('status').style.color = "#64ff7b";
+                }, 3000);
+            }
+        }
+
         // Process the input based on selected cipher
-        function processCipher(action) {
+        function processCipher() {
             const cipherSelect = document.getElementById('cipher-select');
             const inputText = document.getElementById('input-text').value;
             const keyInput = document.getElementById('key-input').value;
@@ -275,12 +451,12 @@
                             throw new Error("Please enter a valid number for the Caesar cipher key");
                         }
                         const shift = parseInt(keyInput) % 26;
-                        result = action === 'encrypt' ? 
+                        result = currentMode === 'encrypt' ? 
                             caesarCipher(inputText, shift) : 
                             caesarCipher(inputText, 26 - shift);
                         break;
                     case 'morse':
-                        result = action === 'encrypt' ? 
+                        result = currentMode === 'encrypt' ? 
                             textToMorse(inputText) : 
                             morseToText(inputText);
                         break;
@@ -288,21 +464,26 @@
                         if (!keyInput) {
                             throw new Error("Please enter a keyword for the Vigenère cipher");
                         }
-                        result = action === 'encrypt' ? 
+                        result = currentMode === 'encrypt' ? 
                             vigenereEncrypt(inputText, keyInput) : 
                             vigenereDecrypt(inputText, keyInput);
                         break;
                     case 'base64':
-                        result = action === 'encrypt' ? 
-                            btoa(inputText) : 
-                            atob(inputText);
+                        try {
+                            result = currentMode === 'encrypt' ? 
+                                btoa(inputText) : 
+                                atob(inputText);
+                        } catch (e) {
+                            throw new Error("Invalid Base64 input");
+                        }
                         break;
                     case 'rot13':
                         result = rot13(inputText);
                         break;
                 }
+                
                 outputText.value = result;
-                document.getElementById('status').textContent = `${action === 'encrypt' ? 'Encryption' : 'Decryption'} successful!`;
+                document.getElementById('status').textContent = `${currentMode === 'encrypt' ? 'Encryption' : 'Decryption'} successful!`;
                 setTimeout(() => {
                     document.getElementById('status').textContent = "";
                 }, 2000);
